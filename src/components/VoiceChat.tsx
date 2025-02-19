@@ -43,6 +43,7 @@ export function VoiceChat() {
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [interimText, setInterimText] = useState(''); // Add this state for showing live transcription
   const { toast } = useToast();
+  const [aiIsRunning , setAiIsRunning] = useState<boolean>(false)
 
   // Add initial greeting
   useEffect(() => {
@@ -110,7 +111,7 @@ export function VoiceChat() {
 
           if (finalTranscript) {
            
-           const aiJawab = await getAiResponse(finalTranscript)
+
             // Add user message
             const newMessage: Message = {
               id: Date.now().toString(),
@@ -122,18 +123,19 @@ export function VoiceChat() {
 
             setMessages(prev => [...prev, newMessage]);
 
-            // Generate AI response
-            const randomResponse = AI_CHARACTER.responses[Math.floor(Math.random() * AI_CHARACTER.responses.length)];
-            setTimeout(() => {
-              const aiResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                text: aiJawab.text,
-                isUser: false,
-                audioUrl: BACKEND_URL + '/'+aiJawab.audio,
-                timestamp: new Date()
-              };
-              setMessages(prev => [...prev, aiResponse]);
-            }, 1000);
+            const aiJawab = await getAiResponse(finalTranscript)
+
+            setAiIsRunning(false)
+
+
+            const aiResponse: Message = {
+              id: (Date.now() + 1).toString(),
+              text: aiJawab.text,
+              isUser: false,
+              audioUrl: BACKEND_URL + '/'+aiJawab.audio,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, aiResponse]);
 
             finalTranscript = '';
             setInterimText(''); // Clear interim text after message is finalized
@@ -173,6 +175,7 @@ export function VoiceChat() {
 
 
   async function getAiResponse(message){
+    setAiIsRunning(true)
     const res = await fetch(BACKEND_URL+'/messages' , {
       method  : "POST",
       headers : {
@@ -202,8 +205,15 @@ export function VoiceChat() {
 
 
 const playAudioFromUrl = (audioUrl: string) => {
+
+  if(isPlaying) return console.log("Wait Already Playing an audio")
+
   const audio = new Audio(audioUrl);
   audio.play();
+  audio.onended = () => {
+    setIsPlaying(false);
+  };
+  setIsPlaying(true);
 };
   return (
     <SidebarProvider>
@@ -284,7 +294,8 @@ const playAudioFromUrl = (audioUrl: string) => {
                         {/* <audio src={message.audioUrl} controls ></audio> */}
                       </div>
                     ))}
-                    
+                    {aiIsRunning &&     <p className='text-black font-bold'>AI is Thinking</p> }
+                
                     {/* Show interim text while recording */}
                     {interimText && (
                       <div className="message-container p-4 rounded-2xl max-w-[80%] ml-auto bg-gradient-to-r from-purple-500/10 to-pink-500/10 transition-all">
