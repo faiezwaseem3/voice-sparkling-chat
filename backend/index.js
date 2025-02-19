@@ -1,6 +1,7 @@
-import express from 'express'
+import express from 'express';
 import { sendMessage } from './grok.js';
 import { textToAudio } from './text-to-speech.js';
+import cors from 'cors'
 
 const app = express();
 const port = 3500;
@@ -12,14 +13,16 @@ let messages = [
     }
 ];
 
+app.use(cors())
 app.use(express.json());
-app.use(express.urlencoded({ extended : true}))
+app.use(express.urlencoded({ extended : true}));
+app.use(express.static('public')); // serve public directory
 
 app.post('/messages', async (req, res) => {
     const { message } = req.body;
 
     if(!message) return res.send("Please ENter a message")
-    
+
     messages.push({
         role: "user",
         content: message+ ". Please Answer Presice in less lines.",
@@ -27,7 +30,12 @@ app.post('/messages', async (req, res) => {
 
     const result= await sendMessage(messages)
 
-   const filename = await textToAudio(result , 200 , `${Math.round(Math.random() + 1) * 1000}`)
+    const filename = await textToAudio(result , 200 , `${Math.round(Math.random() + 1) * 1000}`)
+
+    messages.push({
+        role: "system",
+        content: result,
+    },);
 
     res.json({
         text : result,

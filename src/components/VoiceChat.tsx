@@ -20,6 +20,8 @@ interface Message {
   timestamp?: Date;
 }
 
+const BACKEND_URL = "http://localhost:3500"
+
 const AI_CHARACTER = {
   name: "Luna",
   role: "AI Assistant",
@@ -56,6 +58,8 @@ export function VoiceChat() {
     }
   }, []);
 
+
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -90,7 +94,7 @@ export function VoiceChat() {
         };
 
         let finalTranscript = '';
-        recognition.onresult = (event) => {
+        recognition.onresult = async (event) => {
           let interimTranscript = '';
           
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -106,6 +110,8 @@ export function VoiceChat() {
           setInterimText(interimTranscript);
 
           if (finalTranscript) {
+           
+           const aiJawab = await getAiResponse(finalTranscript)
             // Add user message
             const newMessage: Message = {
               id: Date.now().toString(),
@@ -113,6 +119,8 @@ export function VoiceChat() {
               isUser: true,
               timestamp: new Date()
             };
+
+
             setMessages(prev => [...prev, newMessage]);
 
             // Generate AI response
@@ -120,9 +128,9 @@ export function VoiceChat() {
             setTimeout(() => {
               const aiResponse: Message = {
                 id: (Date.now() + 1).toString(),
-                text: randomResponse,
+                text: aiJawab.text,
                 isUser: false,
-                audioUrl: "#",
+                audioUrl: BACKEND_URL + '/'+aiJawab.audio,
                 timestamp: new Date()
               };
               setMessages(prev => [...prev, aiResponse]);
@@ -163,6 +171,25 @@ export function VoiceChat() {
       setIsRecording(false);
     }
   };
+
+
+  async function getAiResponse(message){
+    const res = await fetch(BACKEND_URL+'/messages' , {
+      method  : "POST",
+      headers : {
+        'Content-Type' : 'application/json'
+      },
+      body : JSON.stringify({
+        message
+      })
+    })
+
+    const json = await res.json()
+
+    console.log(json)
+
+    return json
+  }
 
   // Group messages by date
   const groupedMessages = messages.reduce((groups, message) => {
@@ -248,6 +275,7 @@ export function VoiceChat() {
                             Play Response
                           </Button>
                         )}
+                        <audio src={message.audioUrl} controls ></audio>
                       </div>
                     ))}
                     

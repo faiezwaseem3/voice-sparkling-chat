@@ -1,40 +1,33 @@
 import axios from 'axios';
 import fs from 'fs';
 
-export async function textToAudio(text, chunkSize = 200, delayBetweenChunks = 3000, filenamePrefix = 'audio_') {
+
+export async function textToAudio(text, chunkSize = 200, delayBetweenChunks = 3000, outputFile = 'output.mp3') {
     const chunks = chunkString(text, chunkSize);
-    let delay = 0;
-    const outFiles = [];
+    const audioBuffers = [];
 
-    for (const [index, chunk] of chunks.entries()) {
-        const out = `${filenamePrefix}_${index + 1}.mp3`;
-        outFiles.push(out);
+    for (const chunk of chunks) {
+        const encodedChunk = encodeURIComponent(chunk);
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedChunk}`;
+        const response = await axios.get(url, {
+            responseType: "arraybuffer",
+            headers: {
+                Referer: "http://translate.google.com/",
+                "User-Agent": "stagefright/1.2 (Linux;Android 5.0)",
+            },
+        });
 
-        setTimeout(async () => {
-            const encodedChunk = encodeURIComponent(chunk);
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedChunk}`;
-            const mp3Stream = await axios.get(url, {
-                responseType: "stream",
-                headers: {
-                    Referer: "http://translate.google.com/",
-                    "User-Agent": "stagefright/1.2 (Linux;Android 5.0)",
-                },
-            });
-
-            const writeFileStream = fs.createWriteStream(out);
-            mp3Stream.data.pipe(writeFileStream);
-
-            await new Promise((resolve, reject) => {
-                writeFileStream.on("finish", resolve);
-                writeFileStream.on("error", reject);
-            });
-
-            console.log(`Audio file saved: ${out}`);
-        }, delay);
-        delay += delayBetweenChunks;
+        audioBuffers.push(Buffer.from(response.data));
     }
 
-    return outFiles;
+    // Concatenate all audio buffers into one
+    const combinedBuffer = Buffer.concat(audioBuffers);
+
+    // Save the combined buffer to an MP3 file
+    fs.writeFileSync("./public/"+outputFile, combinedBuffer);
+
+    console.log(`Audio file saved to ${outputFile}`);
+    return outputFile;
 }
 
 export async function textToSpeech(modelName = "elevenlabs" | "myshell-tts" | "deepinfra-tts" | "whisper-large-v3" | "distil-large-v3", inputText, personality = 'will', apiKey) {
