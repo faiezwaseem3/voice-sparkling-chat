@@ -1,0 +1,84 @@
+import axios from 'axios';
+import fs from 'fs';
+
+export async function textToAudio(text, chunkSize = 200, delayBetweenChunks = 3000, filenamePrefix = 'audio_') {
+    const chunks = chunkString(text, chunkSize);
+    let delay = 0;
+    const outFiles = [];
+
+    for (const [index, chunk] of chunks.entries()) {
+        const out = `${filenamePrefix}_${index + 1}.mp3`;
+        outFiles.push(out);
+
+        setTimeout(async () => {
+            const encodedChunk = encodeURIComponent(chunk);
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedChunk}`;
+            const mp3Stream = await axios.get(url, {
+                responseType: "stream",
+                headers: {
+                    Referer: "http://translate.google.com/",
+                    "User-Agent": "stagefright/1.2 (Linux;Android 5.0)",
+                },
+            });
+
+            const writeFileStream = fs.createWriteStream(out);
+            mp3Stream.data.pipe(writeFileStream);
+
+            await new Promise((resolve, reject) => {
+                writeFileStream.on("finish", resolve);
+                writeFileStream.on("error", reject);
+            });
+
+            console.log(`Audio file saved: ${out}`);
+        }, delay);
+        delay += delayBetweenChunks;
+    }
+
+    return outFiles;
+}
+
+export async function textToSpeech(modelName = "elevenlabs" | "myshell-tts" | "deepinfra-tts" | "whisper-large-v3" | "distil-large-v3", inputText, personality = 'will', apiKey) {
+
+    const validPersonalities = [
+        'will', 'maltida', 'liam', 'jessica', 'george', 'lily', 'sana',
+        'Wahab', 'martin', 'darine', 'guillaume', 'leoni', 'kurt', 'leo',
+        'shakuntala', 'maciej', 'aneta', 'gabriela', 'juan'
+    ];
+    if (personality && !validPersonalities.includes(personality)) {
+        throw new Error(`Invalid personality. Please choose from the following: ${validPersonalities.join(', ')}`);
+    }
+
+    const url = 'https://api.electronhub.top/v1/audio/speech';
+    const headers = {
+        Authorization: `Bearer ${apiKey}`,
+    };
+    const data = {
+        model: modelName,
+        voice: personality,
+        input: inputText,
+    };
+
+    const response = await axios.post(url, data, {
+        headers,
+        responseType: 'arraybuffer',
+    });
+
+    const audioBuffer = response.data;
+
+    // Save the audio buffer to an MP3 file
+    const filePath = './output.mp3'; // adjust the file path and name as needed
+    fs.writeFileSync(filePath, audioBuffer);
+
+    console.log(`Audio file saved to ${filePath}`);
+    return filePath;
+}
+
+function chunkString(str, length) {
+    return str.match(new RegExp(`.{1,${length}}`, 'g')) || [];
+}
+
+const msg = "Hello I am William , A dispatchpro dispatcher how may i help you ?";
+
+
+// textToAudio(msg, 200, 3000, "chat_id");
+// textToSpeech("elevenlabs",msg , "shakuntala", "ek-3gmOPmvuljmrl4NQrohpnp1ryNXQG5bNn08zNuzhX6bcxBrndR")
