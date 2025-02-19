@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,20 @@ interface Message {
   timestamp?: Date;
 }
 
+const AI_CHARACTER = {
+  name: "Luna",
+  role: "AI Assistant",
+  personality: "friendly and helpful",
+  greeting: "Hi! I'm Luna, your AI companion. I'm here to chat and help you with anything you need. Feel free to speak to me!",
+  responses: [
+    "That's interesting! Tell me more about it.",
+    "I understand what you mean. Here's what I think...",
+    "I appreciate you sharing that with me.",
+    "Let me help you with that.",
+    "That's a great point you've made.",
+  ]
+};
+
 export function VoiceChat() {
   const [isRecording, setIsRecording] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -26,6 +41,19 @@ export function VoiceChat() {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const { toast } = useToast();
+
+  // Add initial greeting
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        id: 'greeting',
+        text: AI_CHARACTER.greeting,
+        isUser: false,
+        timestamp: new Date(),
+        audioUrl: '#'
+      }]);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -39,7 +67,7 @@ export function VoiceChat() {
 
         recognition.onstart = () => {
           toast({
-            title: "Listening...",
+            title: `${AI_CHARACTER.name} is listening...`,
             description: "Start speaking now",
           });
         };
@@ -81,11 +109,12 @@ export function VoiceChat() {
             };
             setMessages(prev => [...prev, newMessage]);
 
-            // Simulate AI response
+            // Generate AI response
+            const randomResponse = AI_CHARACTER.responses[Math.floor(Math.random() * AI_CHARACTER.responses.length)];
             setTimeout(() => {
               const aiResponse: Message = {
                 id: (Date.now() + 1).toString(),
-                text: "I understood your message: " + finalTranscript.trim(),
+                text: randomResponse,
                 isUser: false,
                 audioUrl: "#",
                 timestamp: new Date()
@@ -178,9 +207,9 @@ export function VoiceChat() {
                     </SidebarTrigger>
                     <div className="text-center flex-1">
                       <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-transparent bg-clip-text mb-2">
-                        Voice Chat
+                        Chat with {AI_CHARACTER.name}
                       </h1>
-                      <p className="text-gray-600">Speak with AI using your voice</p>
+                      <p className="text-gray-600">Your {AI_CHARACTER.personality} AI companion</p>
                     </div>
                     <div className="w-10" /> {/* Spacer for alignment */}
                   </div>
