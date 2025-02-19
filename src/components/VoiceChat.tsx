@@ -40,6 +40,7 @@ export function VoiceChat() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [interimText, setInterimText] = useState(''); // Add this state for showing live transcription
   const { toast } = useToast();
 
   // Add initial greeting
@@ -57,7 +58,6 @@ export function VoiceChat() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Initialize speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -70,6 +70,7 @@ export function VoiceChat() {
             title: `${AI_CHARACTER.name} is listening...`,
             description: "Start speaking now",
           });
+          setInterimText(''); // Clear interim text when starting new recording
         };
 
         recognition.onerror = (event) => {
@@ -80,10 +81,12 @@ export function VoiceChat() {
             variant: "destructive",
           });
           setIsRecording(false);
+          setInterimText(''); // Clear interim text on error
         };
 
         recognition.onend = () => {
           setIsRecording(false);
+          setInterimText(''); // Clear interim text when recording ends
         };
 
         let finalTranscript = '';
@@ -98,6 +101,9 @@ export function VoiceChat() {
               interimTranscript += transcript;
             }
           }
+
+          // Update the interim text for live display
+          setInterimText(interimTranscript);
 
           if (finalTranscript) {
             // Add user message
@@ -123,6 +129,7 @@ export function VoiceChat() {
             }, 1000);
 
             finalTranscript = '';
+            setInterimText(''); // Clear interim text after message is finalized
           }
         };
 
@@ -243,9 +250,21 @@ export function VoiceChat() {
                         )}
                       </div>
                     ))}
+                    
+                    {/* Show interim text while recording */}
+                    {interimText && (
+                      <div className="message-container p-4 rounded-2xl max-w-[80%] ml-auto bg-gradient-to-r from-purple-500/10 to-pink-500/10 transition-all">
+                        <p className="text-gray-600 italic">{interimText}</p>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-center">
+                  <div className="flex flex-col items-center gap-4">
+                    {isRecording && (
+                      <div className="text-sm text-gray-600 animate-pulse">
+                        Speaking...
+                      </div>
+                    )}
                     <Button
                       variant={isRecording ? "destructive" : "default"}
                       size="lg"
