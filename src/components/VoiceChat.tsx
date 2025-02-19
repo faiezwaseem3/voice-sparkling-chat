@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mic, StopCircle, Play, Pause, MessageSquare, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Mic, StopCircle, Play, Pause, MessageSquare, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Sidebar,
   SidebarContent,
@@ -24,33 +24,108 @@ export function VoiceChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Initialize speech recognition
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+          toast({
+            title: "Listening...",
+            description: "Start speaking now",
+          });
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          toast({
+            title: "Error",
+            description: "Failed to start speech recognition. Please try again.",
+            variant: "destructive",
+          });
+          setIsRecording(false);
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        let finalTranscript = '';
+        recognition.onresult = (event) => {
+          let interimTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          if (finalTranscript) {
+            // Add user message
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              text: finalTranscript.trim(),
+              isUser: true,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, newMessage]);
+
+            // Simulate AI response
+            setTimeout(() => {
+              const aiResponse: Message = {
+                id: (Date.now() + 1).toString(),
+                text: "I understood your message: " + finalTranscript.trim(),
+                isUser: false,
+                audioUrl: "#",
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, aiResponse]);
+            }, 1000);
+
+            finalTranscript = '';
+          }
+        };
+
+        setRecognition(recognition);
+      } else {
+        toast({
+          title: "Not Supported",
+          description: "Speech recognition is not supported in your browser.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [toast]);
 
   const startRecording = () => {
-    setIsRecording(true);
-    // TODO: Implement actual recording logic
+    if (recognition) {
+      recognition.start();
+      setIsRecording(true);
+    } else {
+      toast({
+        title: "Error",
+        description: "Speech recognition is not available.",
+        variant: "destructive",
+      });
+    }
   };
 
   const stopRecording = () => {
-    setIsRecording(false);
-    // Simulate message for now
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: "This is a test message",
-      isUser: true,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, newMessage]);
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "This is an AI response",
-        isUser: false,
-        audioUrl: "#",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
+    if (recognition) {
+      recognition.stop();
+      setIsRecording(false);
+    }
   };
 
   // Group messages by date
