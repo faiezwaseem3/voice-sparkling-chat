@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -201,6 +200,11 @@ export function VoiceChat() {
     return groups;
   }, {} as Record<string, Message[]>);
 
+
+const playAudioFromUrl = (audioUrl: string) => {
+  const audio = new Audio(audioUrl);
+  audio.play();
+};
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -265,7 +269,9 @@ export function VoiceChat() {
                             variant="ghost"
                             size="sm"
                             className="mt-2 hover:bg-white/50"
-                            onClick={() => setIsPlaying(!isPlaying)}
+                            onClick={() => {
+                            playAudioFromUrl(message.audioUrl)
+                            setIsPlaying(!isPlaying)}}
                           >
                             {isPlaying ? (
                               <Pause className="h-4 w-4 mr-2" />
@@ -275,7 +281,7 @@ export function VoiceChat() {
                             Play Response
                           </Button>
                         )}
-                        <audio src={message.audioUrl} controls ></audio>
+                        {/* <audio src={message.audioUrl} controls ></audio> */}
                       </div>
                     ))}
                     

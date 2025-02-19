@@ -30,7 +30,7 @@ app.post('/messages', async (req, res) => {
 
     const result= await sendMessage(messages)
 
-    const filename = await textToAudio(result , 200 , `${Math.round(Math.random() + 1) * 1000}`)
+    const filename = await textToAudio(result , 200 , `${Math.round(Math.random() + 1) * 1000}.mp3`)
 
     messages.push({
         role: "system",

@@ -2,7 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 
 
-export async function textToAudio(text, chunkSize = 200, delayBetweenChunks = 3000, outputFile = 'output.mp3') {
+export async function textToAudio(text, chunkSize = 200, outputFile = 'output.mp3') {
     const chunks = chunkString(text, chunkSize);
     const audioBuffers = [];
 
@@ -22,6 +22,8 @@ export async function textToAudio(text, chunkSize = 200, delayBetweenChunks = 30
 
     // Concatenate all audio buffers into one
     const combinedBuffer = Buffer.concat(audioBuffers);
+
+
 
     // Save the combined buffer to an MP3 file
     fs.writeFileSync("./public/"+outputFile, combinedBuffer);
