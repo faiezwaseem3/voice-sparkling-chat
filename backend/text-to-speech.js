@@ -60,12 +60,13 @@ export async function textToSpeech(modelName = "elevenlabs" | "myshell-tts" | "d
 
     const audioBuffer = response.data;
 
+    const filename = `${Math.floor(Math.random() * 10000)}.mp3`
     // Save the audio buffer to an MP3 file
-    const filePath = './output.mp3'; // adjust the file path and name as needed
+    const filePath = `./public/${filename}`; // adjust the file path and name as needed
     fs.writeFileSync(filePath, audioBuffer);
 
     console.log(`Audio file saved to ${filePath}`);
-    return filePath;
+    return filename
 }
 
 function chunkString(str, length) {
@@ -76,4 +77,4 @@ const msg = "Hello I am William , A dispatchpro dispatcher how may i help you ?"
 
 
 // textToAudio(msg, 200, 3000, "chat_id");
-// textToSpeech("elevenlabs",msg , "shakuntala", "ek-3gmOPmvuljmrl4NQrohpnp1ryNXQG5bNn08zNuzhX6bcxBrndR")
+// textToSpeech("elevenlabs",msg , "shakuntala", process.env.ELECTRON_HUB)

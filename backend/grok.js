@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk'
 
-const groq = new Groq({ apiKey: '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' });
+const groq = new Groq({ apiKey: process.env.GROQ_API });
 
 
 
@@ -9,7 +9,7 @@ async function sendMessage(messages) {
 
   const chat_completion = await groq.chat.completions.create({
     messages,
-    model: "llama3-70b-8192",
+    model: "gemma2-9b-it",
     temperature: 0,
     stream: false,
   });

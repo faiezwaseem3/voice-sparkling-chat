@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mic, StopCircle, Play, Pause, MessageSquare, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import ReactMarkdown from 'react-markdown'
 import {
   Sidebar,
   SidebarContent,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import Linkify from 'react-linkify'
+
 
 interface Message {
   id: string;
@@ -26,13 +29,6 @@ const AI_CHARACTER = {
   role: "AI Assistant",
   personality: "friendly and helpful",
   greeting: "Hi! I'm Luna, your AI companion. I'm here to chat and help you with anything you need. Feel free to speak to me!",
-  responses: [
-    "That's interesting! Tell me more about it.",
-    "I understand what you mean. Here's what I think...",
-    "I appreciate you sharing that with me.",
-    "Let me help you with that.",
-    "That's a great point you've made.",
-  ]
 };
 
 export function VoiceChat() {
@@ -44,6 +40,8 @@ export function VoiceChat() {
   const [interimText, setInterimText] = useState(''); // Add this state for showing live transcription
   const { toast } = useToast();
   const [aiIsRunning , setAiIsRunning] = useState<boolean>(false)
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Add initial greeting
   useEffect(() => {
@@ -58,6 +56,11 @@ export function VoiceChat() {
     }
   }, []);
 
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]); 
 
 
   useEffect(() => {
@@ -135,7 +138,10 @@ export function VoiceChat() {
               audioUrl: BACKEND_URL + '/'+aiJawab.audio,
               timestamp: new Date()
             };
+
             setMessages(prev => [...prev, aiResponse]);
+
+            playAudioFromUrl(BACKEND_URL + '/'+aiJawab.audio)
 
             finalTranscript = '';
             setInterimText(''); // Clear interim text after message is finalized
@@ -273,7 +279,11 @@ const playAudioFromUrl = (audioUrl: string) => {
                             : "bg-gradient-to-r from-orange-500/20 to-pink-500/20"
                         )}
                       >
-                        <p className="text-gray-800">{message.text}</p>
+                        
+                        <Linkify>
+                        {message.text.split('\n').map(line => <p className="text-gray-800">{line}</p>)}
+                        
+                        </Linkify>
                         {!message.isUser && message.audioUrl && (
                           <Button
                             variant="ghost"
@@ -294,7 +304,7 @@ const playAudioFromUrl = (audioUrl: string) => {
                         {/* <audio src={message.audioUrl} controls ></audio> */}
                       </div>
                     ))}
-                    {aiIsRunning &&     <p className='text-black font-bold'>AI is Thinking</p> }
+                    {aiIsRunning &&     <p className='text-black font-bold italic animate-pulse'>AI is Thinking</p> }
                 
                     {/* Show interim text while recording */}
                     {interimText && (
@@ -302,6 +312,7 @@ const playAudioFromUrl = (audioUrl: string) => {
                         <p className="text-gray-600 italic">{interimText}</p>
                       </div>
                     )}
+                    <div ref={messagesEndRef} />
                   </div>
 
                   <div className="flex flex-col items-center gap-4">
